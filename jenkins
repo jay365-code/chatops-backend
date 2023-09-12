@@ -1,0 +1,45 @@
+pipeline {
+    agent any
+    environment {
+        IMAGE_NAME = "chatbot-backend"
+        CONTAINER_NAME = "chatbot-backend"
+    }
+    stages {
+        stage('clone'){
+            steps {
+                script {
+                    git branch: 'master', url: 'https://github.com/jay365-code/chatops-backend.git'
+                }
+            }
+        }
+        stage('docker build') {
+            steps {
+                sh "docker build -t ${IMAGE_NAME} ."
+                sh 'docker images'
+            }
+        }
+        stage('docker stop') {
+            steps {
+                script {
+                    def container_id = sh (
+                        script: "docker ps -q --filter name=${CONTAINER_NAME}",
+                        returnStdout: true
+                    ).trim()
+                    if(container_id){
+                        echo "running container id: ${container_id}"
+                        sh "docker stop ${container_id}"
+                    }else{
+                        echo 'no running container'
+                    }
+                }
+            }
+        }
+        stage('docker run') {
+            steps {
+                sh "docker run -d --name ${CONTAINER_NAME} -p 5000:5000 ${IMAGE_NAME}"
+                sh "docker image prune -f"
+                sh 'docker ps'
+            }
+        }
+    }
+}
