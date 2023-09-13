@@ -1,6 +1,6 @@
 # 2023.09.12 추가
 # Node.js 이미지 사용 (예: LTS 버전)
-FROM node:15
+FROM node:lts
 
 # 필요한 환경 변수 정의 (선택 사항, 필요에 따라 수정)
 ENV NODE_ENV=development
