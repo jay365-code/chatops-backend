@@ -37,7 +37,7 @@ app.use(
 const API_URL =
   "https://www.stack-inference.com/run_deployed_flow?flow_id=64ab8f4d036adfef3faee13f&org=0b713554-21ff-409a-b843-985bfc350d9c";
 const headers = {
-  Authorization: "Bearer f6cde969-9f9a-4dfa-bbf0-2b29f41f7889",
+  Authorization: "Bearer public_key",
   "Content-Type": "application/json",
 };
 
