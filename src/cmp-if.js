@@ -6,6 +6,222 @@ const cmpHeaders = {
   "Content-Type": "application/json",
 };
 
+function getRecommendedCPU(req) {
+  const url = `${process.env.CMP_URL}/catalog/v1/product-recommendation/cpu/select-list`;
+  let cpuList = null;
+
+  console.log(url);
+
+  axios
+    .get(url, { headers: cmpHeaders })
+    .then((response) => {
+      // console.log("result: " + JSON.stringify(response.data.result));
+      cpuList = response.data.result;
+      req.session.instanceCoreList = cpuList
+        .map((item) => item.value)
+        .join(", ");
+      // console.log(
+      //   "req.session.instanceCoreList=" + req.session.instanceCoreList
+      // );
+    })
+    .catch((error) => {
+      console.error(error);
+    });
+
+  // return cpuList;
+}
+
+function getRecommendedStorage(req) {
+  const url = `${process.env.CMP_URL}/catalog/v1/product-recommendation/blockstorage-size/select-list`;
+  let storageList = null;
+
+  console.log(url);
+
+  axios
+    .get(url, { headers: cmpHeaders })
+    .then((response) => {
+      storageList = response.data.result;
+      // console.log("result: " + JSON.stringify(storageList));
+      req.session.instanceStorageList = storageList
+        .map((item) => item.value)
+        .join(", ");
+      // console.log(
+      //   "req.session.instanceStorageList=" + req.session.instanceStorageList
+      // );
+    })
+    .catch((error) => {
+      console.error(error);
+    });
+
+  // return storageList;
+}
+
+function getRecommendedMemory(req, numCPU) {
+  const url = `${process.env.CMP_URL}/catalog/v1/product-recommendation/memory/select-list?vcpu=${numCPU}`;
+  let memoryList = null;
+
+  console.log(url);
+
+  axios
+    .get(url, { headers: cmpHeaders })
+    .then((response) => {
+      memoryList = response.data.result;
+      // console.log("result: " + JSON.stringify(memoryList));
+      req.session.instanceMemoryList = memoryList
+        .map((item) => item.value)
+        .join(", ");
+      // console.log(
+      //   "req.session.instanceMemoryList=" + req.session.instanceMemoryList
+      // );
+      req.session.save((err) => {
+        // console.log("req.session.instanceMemoryList was saved...");
+      });
+    })
+    .catch((error) => {
+      console.error(error);
+    });
+
+  // return memoryList;
+}
+
+function getRecommendedOS(req, numCPU) {
+  const url = `${process.env.CMP_URL}/catalog/v1/product-recommendation/os-group/select-list?vcpu=${numCPU}`;
+  let osList = null;
+
+  console.log(url);
+
+  axios
+    .get(url, { headers: cmpHeaders })
+    .then((response) => {
+      osList = response.data.result;
+      // console.log("result: " + JSON.stringify(osList));
+      req.session.instanceOsList = osList.map((item) => item.value).join(", ");
+      // console.log("req.session.instanceOsList=" + req.session.instanceOsList);
+      req.session.save((err) => {
+        // console.log("req.session.instanceOsList was saved...");
+      });
+    })
+    .catch((error) => {
+      console.error(error);
+    });
+
+  // return osList;
+}
+
+function getRecommendedInstance(req) {
+  const vCpu = req.session.instance.numCPU;
+  const memory = req.session.instance.sizeMemory;
+  const osGroup = req.session.instance.osTemplate;
+  const blockStorageSize = req.session.instance.sizeStorage;
+
+  if (!(vCpu && memory && osGroup && blockStorageSize)) {
+    console.log("미입력값이 존재 합니다.");
+    return;
+  }
+  // http://172.16.10.168:3001/catalog/v1/product-recommendation/list?vCpu=2&memory=4&osGroup=Ubuntu&blockstorageSize=30
+  // const url = `http://172.16.10.168:3001/catalog/v1/product-recommendation/list?vCpu=${vCpu}&memory=${memory}&osGroup=${osGroup}&blockstorageSize=${blockStorageSize}`;
+  const url = `${process.env.CMP_URL}/catalog/v1/product-recommendation/list?vCpu=${vCpu}&memory=${memory}&osGroup=${osGroup}&blockstorageSize=${blockStorageSize}`;
+  let instance = null;
+
+  console.log(url);
+
+  // 추천 Instance가 없을 때 처리 방안
+  // 추천 Instance가 없으면 response.data.result.content[]에 값이 없이 return 함
+  axios
+    .get(url, { headers: cmpHeaders })
+    .then((response) => {
+      instance = response.data.result.content[0];
+      console.log("instance list result: " + JSON.stringify(instance));
+      if (instance) {
+        req.session.recommendedInstance = instance;
+        req.session.save((err) => {
+          console.log("req.session.recommendedInstance was saved...");
+        });
+      }
+    })
+    .catch((error) => {
+      console.error(error);
+    });
+}
+
+async function createInstance(req) {
+  const vCpu = req.session.instance.numCPU;
+  const memory = req.session.instance.sizeMemory;
+  const osGroup = req.session.instance.osTemplate;
+  const blockStorageSize = req.session.instance.sizeStorage;
+  const recommendedInstance = req.session.recommendedInstance;
+  if (!(vCpu && memory && osGroup && blockStorageSize && recommendedInstance)) {
+    console.log("createInstance() 미입력값이 존재 합니다.");
+    console.log("vCpu=" + vCpu);
+    console.log("memory=" + memory);
+    console.log("osGroup=" + osGroup);
+    console.log("blockStorageSize=" + blockStorageSize);
+    console.log("recommendedInstance=" + JSON.stringify(recommendedInstance));
+
+    const returnCode = "inputting";
+    return { returnCode, vmName: null };
+  }
+  const url = `${process.env.CMP_URL}/imp/v1/virtual-server`;
+
+  // 필수 입력
+  const imageId = recommendedInstance.imageCode;
+  const vmType = recommendedInstance.instanceType;
+  const regionName = recommendedInstance.regionCode;
+  const cloudType = recommendedInstance.cloudType;
+  const volumeList = [
+    {
+      volumeType: recommendedInstance.storageTypeCode,
+      rootDevice: true,
+      volumeSize: recommendedInstance.storageSize,
+    },
+  ];
+
+  // 조건: autoXXXX true 설정에 따라 자동 생성
+  // keyName, securityGroupIdList, subnetId, publicIp, serviceGroupUuid
+  const autoAssignKeypair = true; // keyName 자동 할당
+  const autoAssignSecurityGroupList = true; // securityGroupList 자동 할당
+  const autoAssignSubnet = true; // subnetId 자동 할당
+  const autoAssignPublicIp = true; // publicIp 자동 할당
+  const autoAssignServiceGroup = true; // serviceGroupUuid 자동 할당
+
+  // const vmName = null; // null이면 자동 생성
+  // const vmCount = 1; // default 1
+
+  try {
+    const response = await axios.post(
+      url,
+      {
+        imageId: imageId,
+        vmType: vmType,
+        volumeList: volumeList,
+        autoAssignPublicIp: autoAssignPublicIp,
+        autoAssignSubnet: autoAssignSubnet,
+        autoAssignSecurityGroupList: autoAssignSecurityGroupList,
+        autoAssignKeypair: autoAssignKeypair,
+        autoAssignServiceGroup: autoAssignServiceGroup,
+        regionName: regionName,
+        cloudType: cloudType,
+      },
+      { headers: cmpHeaders }
+    );
+
+    const message = response.data.message;
+    const result = response.data.result;
+    console.log("message: " + JSON.stringify(message));
+    console.log("result: " + JSON.stringify(result));
+    const returnCode = message.code;
+    const vmName = result.vmName;
+
+    return { returnCode, vmName };
+  } catch (error) {
+    console.error(error);
+    const returnCode = error.response.status;
+    return { returnCode, vmName: null };
+  }
+}
+
+// getRecommendedInstance(null, 2, 4, "Ubuntu", 30);
+
 function getServiceGroup() {
   const url = `${process.env.CMP_URL}/imp/v1/service-group/select-list`;
   let serviceGroup = null;
@@ -145,7 +361,7 @@ function getSubnet() {
   return subnets;
 }
 
-function getKeyparis() {
+function getKeyPair() {
   const regionCode = "ap-northeast-2";
   const url = `${process.env.CMP_URL}/imp/v1/keypair/select-list?regionName=${regionCode}`;
   let keypairs = null;
@@ -236,8 +452,11 @@ function makeVirtualServer() {
     });
 }
 
-makeVirtualServer();
-
 module.exports = {
-  getServiceGroup: getServiceGroup,
+  getRecommendedCPU: getRecommendedCPU,
+  getRecommendedStorage: getRecommendedStorage,
+  getRecommendedOS: getRecommendedOS,
+  getRecommendedMemory: getRecommendedMemory,
+  getRecommendedInstance: getRecommendedInstance,
+  createInstance: createInstance,
 };
