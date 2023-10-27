@@ -251,11 +251,12 @@ function init(req) {
 function sayGoodbye(req) {
   console.log("대화를 종료합니다.");
   // delete req.session.currentState; // session 정보를 어떻게 정리할 지 추가 검토 필요. 일단 currentState만 삭제함.
-  req.session.destroy((err) => {
-    console.log("session was destroyed...");
-  });
+  // req.session.destroy((err) => {
+  //   console.log("session was destroyed...");
+  // });
+  initInputs(req);
 
-  return "대화를 종료합니다.";
+  return;
 }
 
 function initInputs(req) {
