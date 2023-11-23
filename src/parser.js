@@ -51,13 +51,11 @@ class Instance {
 }
 
 function makeInstanceContext(req) {
-  const context = `Context:\n-----------\n코어 수량: ${
-    req.session.instance.numCPU || "미입력"
-  }\n메모리 크기: ${req.session.instance.sizeMemory || "미입력"}\nOS 템플릿: ${
-    req.session.instance.osTemplate || "미입력"
-  }\n스토리지 크기: ${
-    req.session.instance.sizeStorage || "미입력"
-  }\n노드 수량: ${req.session.instance.numNode || "미입력"}\n-----------\n`;
+  const context = `\nContext:
+   -코어 수량: ${req.session.instance.numCPU || "미입력"}
+   -메모리 크기: ${req.session.instance.sizeMemory || "미입력"}
+   -OS 템플릿: ${req.session.instance.osTemplate || "미입력"}
+   -스토리지 크기: ${req.session.instance.sizeStorage || "미입력"}\n`;
 
   // console.log("context=" + context);
 
@@ -65,13 +63,12 @@ function makeInstanceContext(req) {
 }
 
 function makeClusterContext(req) {
-  const context = `Context:\n-----------\n코어 수량: ${
-    req.session.cluster.numCPU || "미입력"
-  }\n메모리 크기: ${req.session.cluster.sizeMemory || "미입력"}\nOS 템플릿: ${
-    req.session.cluster.osTemplate || "미입력"
-  }\n스토리지 크기: ${
-    req.session.cluster.sizeStorage || "미입력"
-  }\s노드 수량: ${req.session.cluster.numNode || "미입력"}\n-----------\n`;
+  const context = `\nContext:
+  -코어 수량: ${req.session.cluster.numCPU || "미입력"}
+  -메모리 크기: ${req.session.cluster.sizeMemory || "미입력"}
+  -OS 템플릿: ${req.session.cluster.osTemplate || "미입력"}
+  -스토리지 크기: ${req.session.cluster.sizeStorage || "미입력"}
+  -노드 수량: ${req.session.cluster.numNode || "미입력"}\n`;
 
   // console.log("context=" + context);
 
@@ -163,11 +160,66 @@ function parseText(req, text) {
   }
 }
 
+function parseTextIntent(req, text) {
+  let numCPU = null;
+  let sizeMemory = null;
+  let osTemplate = null;
+  let sizeStorage = null;
+  let numNode = null;
+
+  try {
+    // 정규식을 사용하여 JSON 형식의 문자열을 추출합니다.
+    const jsonRegex = /\{[^{}]*\}/g;
+    const jsonMatches = text.match(jsonRegex);
+
+    if (jsonMatches) {
+      // 첫 번째 JSON 문자열을 파싱합니다.
+      const jsonObject = JSON.parse(jsonMatches[0]);
+      console.log("jsonObject=" + JSON.stringify(jsonObject));
+
+      // Output 클래스의 속성을 추출합니다.
+      numCPU = parseInt(jsonObject.numCPU) || null;
+      if (numCPU) {
+        sizeMemory = parseInt(jsonObject.sizeMemory) || null;
+        osTemplate = jsonObject.osTemplate || null;
+      }
+      sizeStorage = parseInt(jsonObject.sizeStorage) || null;
+      numNode = parseInt(jsonObject.numNode) || null;
+      const workIntention = jsonObject.workIntent || null;
+      const intent = jsonObject.intent || null;
+
+      // Output 객체를 생성합니다.
+      const output = new Instance(
+        numCPU,
+        sizeMemory,
+        osTemplate,
+        sizeStorage,
+        numNode
+      );
+
+      // numCPU가 선택되면 numCPU에 따른 memory 리스트를 CMP에서 조회
+      if (numCPU) {
+        cmpApi.getRecommendedMemory(req, numCPU);
+        cmpApi.getRecommendedOS(req, numCPU);
+      }
+
+      return { output, workIntention, intent };
+    } else {
+      console.error("No JSON format found in the input text");
+      return { output: null, workIntention: null, intent: null };
+    }
+  } catch (error) {
+    console.error("Error parsing JSON:", error);
+    return { output: null, workIntention: null, intent: null };
+  }
+}
+
 function resetContex() {}
 
 module.exports = {
   Instance: Instance,
   parseText: parseText,
+  parseTextIntent: parseTextIntent,
   makeInstanceContext: makeInstanceContext,
   makeClusterContext: makeClusterContext,
 };

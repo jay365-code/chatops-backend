@@ -3,7 +3,8 @@ const bodyParser = require("body-parser");
 const axios = require("axios");
 const cors = require("cors");
 require("dotenv").config();
-const openai = require("openai");
+const OpenAI = require("openai");
+// import { pipeline } from "node:stream/promises";
 
 // import OpenAI from "openai";
 // const openai = new OpenAI({
@@ -22,7 +23,11 @@ const app = express();
 app.use(bodyParser.json());
 app.use(
   cors({
-    origin: ["http://localhost:8080", "http://172.16.10.168:3001/"], // 허용할 origin (프론트엔드 앱의 주소)
+    origin: [
+      "http://localhost:8080",
+      "http://localhost:8080/chat",
+      "http://172.16.10.168:3001/",
+    ], // 허용할 origin (프론트엔드 앱의 주소)
     credentials: true, // credentials 모드 사용
   })
 );
@@ -90,11 +95,80 @@ app.post("/query", (req, res) => {
 app.post("/chat", async (req, res) => {
   try {
     const aiResponse = await chatFlow.chattingFlow(req); // 'await'를 사용해 chattingFlow에서 반환되는 값을 기다립니다.
-    console.log("A: " + aiResponse);
+    console.log("<===A: " + aiResponse);
     res.json({ output: aiResponse });
   } catch (error) {
     console.error("Error getting AI response:", error);
     res.status(500).json({ error: "Failed to get AI response" });
+  }
+});
+
+app.post("/chat-stream", (req, res) => {
+  const openai = new OpenAI();
+  // let's assume here req.body
+  (async function openAiApi() {
+    const stream = await openai.chat.completions.create(
+      {
+        model: "gpt-4-1106-preview",
+        messages: [
+          {
+            role: "user",
+            content: "가을 여행에 대해서 100자 이내로 작성해줘",
+          },
+        ],
+        stream: true,
+      },
+      { responseType: "stream" }
+    );
+
+    // 스트림 응답을 위한 Content-Type 설정
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("Access-Control-Allow-Origin", "http://localhost:8080");
+
+    for await (const chunk of stream) {
+      const content = chunk.choices[0].delta.content;
+      if (content) {
+        // content가 유효한지 확인
+        const formattedData = `data: ${content}\n\n`;
+        res.write(formattedData);
+        console.log(content);
+        // res.write(content);
+      }
+    }
+    res.end();
+  })();
+});
+
+app.post("/chatapi-stream", async (req, res) => {
+  try {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      },
+      // We need to send the body as a string, so we use JSON.stringify.
+      body: JSON.stringify({
+        model: "gpt-3.5-turbo",
+        messages: [
+          {
+            role: "user",
+            // The message will be 'Say hello.' unless you provide a message in the request body.
+            content: ` ${req.body.message || "Say hello."}`,
+          },
+        ],
+        temperature: 0,
+        max_tokens: 25,
+        n: 1,
+        stream: true,
+      }),
+    });
+
+    await pipeline(response.body, res);
+  } catch (err) {
+    console.log(err);
   }
 });
 

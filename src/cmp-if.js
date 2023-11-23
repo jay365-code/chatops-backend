@@ -115,7 +115,9 @@ function getRecommendedInstance(req) {
   const blockStorageSize = req.session.instance.sizeStorage;
 
   if (!(vCpu && memory && osGroup && blockStorageSize)) {
-    console.log("미입력값이 존재 합니다.");
+    console.log(
+      `미입력값이 존재 합니다. vCPU=${vCpu}, memory=${memory}, osGroup=${osGroup}, blockStorageSize=${blockStorageSize}`
+    );
     return;
   }
   // http://172.16.10.168:3001/catalog/v1/product-recommendation/list?vCpu=2&memory=4&osGroup=Ubuntu&blockstorageSize=30
@@ -145,11 +147,23 @@ function getRecommendedInstance(req) {
 }
 
 async function createInstance(req) {
+  // // TEST code
+  // // req.session.recommendedInstanceStatus = `생성중`;
+  // req.session.recommendedInstanceStatus = `생성 완료, VM 이름은 aws-server-3752fae1-0fe1-4611-9421-222800b2d9b0입니다.`;
+  // // req.session.recommendedInstanceStatus = `생성 실패, 에러 코드: 40001`;
+  // console.log(
+  //   "createInstance() recommendedInstanceStatus: " +
+  //     req.session.recommendedInstanceStatus
+  // );
+  // return;
+  // // End of TEST code
   const vCpu = req.session.instance.numCPU;
   const memory = req.session.instance.sizeMemory;
   const osGroup = req.session.instance.osTemplate;
   const blockStorageSize = req.session.instance.sizeStorage;
   const recommendedInstance = req.session.recommendedInstance;
+  let vmName = null;
+
   if (!(vCpu && memory && osGroup && blockStorageSize && recommendedInstance)) {
     console.log("createInstance() 미입력값이 존재 합니다.");
     console.log("vCpu=" + vCpu);
@@ -163,6 +177,7 @@ async function createInstance(req) {
   }
   const url = `${process.env.CMP_URL}/imp/v1/virtual-server`;
 
+  req.session.recommendedInstanceStatus = `생성중`;
   // 필수 입력
   const imageId = recommendedInstance.imageCode;
   const vmType = recommendedInstance.instanceType;
@@ -187,8 +202,10 @@ async function createInstance(req) {
   // const vmName = null; // null이면 자동 생성
   // const vmCount = 1; // default 1
 
-  try {
-    const response = await axios.post(
+  console.log("createInstance() url=" + url);
+
+  axios
+    .post(
       url,
       {
         imageId: imageId,
@@ -203,21 +220,33 @@ async function createInstance(req) {
         cloudType: cloudType,
       },
       { headers: cmpHeaders }
-    );
+    )
+    .then((response) => {
+      const message = response.data.message;
+      const returnCode = message.code;
+      if (message.code === "10001") {
+        const result = response.data.result;
+        console.log("message: " + JSON.stringify(message));
+        console.log("result: " + JSON.stringify(result));
+        vmName = result.vmName;
+        req.session.recommendedInstanceStatus = `생성 완료, VM 이름은 ${vmName}입니다.`;
+      } else {
+        vmName = null;
+        req.session.recommendedInstanceStatus = `생성 실패, 관리자에게 문의 바랍니다, 문의할 곳은 admin@strato-cmp.com 입니다\n 에러 코드: ${message.code}`;
+      }
+      req.session.save((err) => {});
 
-    const message = response.data.message;
-    const result = response.data.result;
-    console.log("message: " + JSON.stringify(message));
-    console.log("result: " + JSON.stringify(result));
-    const returnCode = message.code;
-    const vmName = result.vmName;
+      return { returnCode, vmName };
+    })
 
-    return { returnCode, vmName };
-  } catch (error) {
-    console.error(error);
-    const returnCode = error.response.status;
-    return { returnCode, vmName: null };
-  }
+    .catch((error) => {
+      console.error(error);
+      const returnCode = error.response.status;
+      req.session.recommendedInstanceStatus = `생성 실패, 에러 코드: ${returnCode}`;
+      req.session.save((err) => {});
+
+      return { returnCode, vmName: null };
+    });
 }
 
 // getRecommendedInstance(null, 2, 4, "Ubuntu", 30);
