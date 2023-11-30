@@ -385,6 +385,9 @@ function initInputs(req) {
   req.session.recommendedInstance = null;
   req.session.recommendedInstanceStatus = "필수 정보 수집 중";
 
+  getRecommendedCPU(req);
+  getRecommendedStorage(req);
+
   req.session.save((err) => {
     // console.log("req.session.instanceMemoryList was saved...");
   });
