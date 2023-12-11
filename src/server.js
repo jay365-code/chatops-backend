@@ -13,6 +13,7 @@ const OpenAI = require("openai");
 
 const chatParser = require("./parser.js");
 const chatFlow = require("./chatbot-flow.js");
+const prompts = require("./prompts.js");
 const session = require("express-session");
 // const secretKey = process.env.SESSION_SECRET || 'myverylongrandomsecretkey';
 const secretKey = process.env.SESSION_SECRET || "LSJLK-SLD83-DLFJG-28375-JHLEE";
@@ -23,11 +24,7 @@ const app = express();
 app.use(bodyParser.json());
 app.use(
   cors({
-    origin: [
-      "http://localhost:8080",
-      "http://localhost:8080/chat",
-      "http://172.16.10.168:3001/",
-    ], // 허용할 origin (프론트엔드 앱의 주소)
+    origin: ["http://localhost:8080", "http://172.16.10.168:3001/"], // 허용할 origin (프론트엔드 앱의 주소)
     credentials: true, // credentials 모드 사용
   })
 );
@@ -44,6 +41,11 @@ const API_URL =
   "https://www.stack-inference.com/run_deployed_flow?flow_id=64ab8f4d036adfef3faee13f&org=0b713554-21ff-409a-b843-985bfc350d9c";
 const headers = {
   Authorization: "Bearer public_key",
+  "Content-Type": "application/json",
+};
+
+const openaiHeaders = {
+  Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
   "Content-Type": "application/json",
 };
 
@@ -103,8 +105,13 @@ app.post("/chat", async (req, res) => {
   }
 });
 
-app.post("/chat-stream", (req, res) => {
+app.put("/chat-stream", (req, res) => {
   const openai = new OpenAI();
+
+  const userContent = req.body["in-0"];
+  console.log("in-0: " + req.body["in-0"]);
+  const systemContent = `${prompts.SYSTEM_PROMPT_CHAT_INSTANCE_NEW}`;
+
   // let's assume here req.body
   (async function openAiApi() {
     const stream = await openai.chat.completions.create(
@@ -112,26 +119,35 @@ app.post("/chat-stream", (req, res) => {
         model: "gpt-4-1106-preview",
         messages: [
           {
+            role: "system",
+            content: systemContent,
+          },
+          {
             role: "user",
-            content: "가을 여행에 대해서 100자 이내로 작성해줘",
+            content: userContent,
           },
         ],
+        temperature: 0.5,
+        max_tokens: 4096,
+        top_p: 1,
+        frequency_penalty: 0,
+        presence_penalty: 0,
         stream: true,
       },
-      { responseType: "stream" }
+      { headers: openaiHeaders }
     );
 
     // 스트림 응답을 위한 Content-Type 설정
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
-    res.setHeader("Access-Control-Allow-Origin", "http://localhost:8080");
+    // res.setHeader("Access-Control-Allow-Origin", "http://localhost:8080");
 
     for await (const chunk of stream) {
       const content = chunk.choices[0].delta.content;
       if (content) {
         // content가 유효한지 확인
-        const formattedData = `data: ${content}\n\n`;
+        const formattedData = `data: ${JSON.stringify(content)}\n\n`;
         res.write(formattedData);
         console.log(content);
         // res.write(content);

@@ -110,6 +110,13 @@ async function chattingFlow(req) {
   } else if (currentState === undefined) {
     init(req); // 세션에서 필수 입력 정보 초기화, 현재는 instance만, 추후 cluster 추가 필요!
     systemContent = `${prompts.SYSTEM_PROMPT_CHAT}`;
+  } else if (currentState === "instance architecture") {
+    console.log("currentState is instance architecture");
+    systemContent = `${prompts.SYSTEM_PROMPT_CHAT_INSTANCE_NEW}`;
+
+    // Chat hisotory 추가, 최신 대화 1개만..., 최대 10개까지 가능
+    const chatHistoryText = getChatHistory(req, 1);
+    systemContent += `\nChat History: ${chatHistoryText}`;
   } else {
     console.log(
       "check session... currentState=" + JSON.stringify(currentState)
@@ -122,7 +129,8 @@ async function chattingFlow(req) {
   console.log("===> Q: " + userContent);
   console.log("currentState=" + req.session.currentState);
 
-  aiTaskExtract(req, userContent); // 사용자의 입력에서 의도를 추출, execIntent() 실행
+  // TMP: NEXT#1
+  // aiTaskExtract(req, userContent); // 사용자의 입력에서 의도를 추출, execIntent() 실행
   aiResponse = await aiTaskChat(req, systemContent, userContent); // Chat 용
 
   setChatHistory(req, userContent, aiResponse);
@@ -342,7 +350,9 @@ function init(req) {
   req.session.instance.osTemplate = null;
   req.session.instance.sizeStorage = null;
   req.session.instance.numNode = null;
-  req.session.currentState = "start";
+  // TMP: NEXT#1
+  // req.session.currentState = "start";
+  req.session.currentState = "instance architecture";
 
   req.session.chatHistory = [];
 
