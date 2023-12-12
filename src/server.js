@@ -150,7 +150,8 @@ app.get("/chat-stream", (req, res) => {
       const content = chunk.choices[0].delta.content;
       if (content) {
         // content가 유효한지 확인
-        const formattedData = `data: ${JSON.stringify(content)}\n\n`;
+        // const formattedData = `data: ${JSON.stringify(content)}\n\n`;
+        const formattedData = `data: ${content}\n\n`;
         res.write(formattedData);
         console.log(content);
         // res.write(content);
