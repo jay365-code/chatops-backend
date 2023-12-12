@@ -115,6 +115,12 @@ app.get("/chat-stream", (req, res) => {
   // TBD: -add Chat History, Stream 방식의 답변에서 응답 완성 루틴 필요
   //      -CMP 스웨거 or Open API spec 3.0 베이스로 JSON 생성하게 만들자
 
+  // 사용자 입력이 비어있는 경우 처리
+  if (!userContent || userContent.trim() === "") {
+    res.send("죄송합니다. 다시 입력해 주세요.");
+    return; // 함수 실행 종료
+  }
+
   // let's assume here req.body
   (async function openAiApi() {
     const stream = await openai.chat.completions.create(
