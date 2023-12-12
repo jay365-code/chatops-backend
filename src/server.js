@@ -105,12 +105,15 @@ app.post("/chat", async (req, res) => {
   }
 });
 
-app.put("/chat-stream", (req, res) => {
+app.get("/chat-stream", (req, res) => {
   const openai = new OpenAI();
 
-  const userContent = req.body["in-0"];
-  console.log("in-0: " + req.body["in-0"]);
+  // const userContent = req.body["in-0"];
+  const userContent = req.query["in-0"];
+  console.log("in-0: " + userContent);
   const systemContent = `${prompts.SYSTEM_PROMPT_CHAT_INSTANCE_NEW}`;
+  // TBD: -add Chat History, Stream 방식의 답변에서 응답 완성 루틴 필요
+  //      -CMP 스웨거 or Open API spec 3.0 베이스로 JSON 생성하게 만들자
 
   // let's assume here req.body
   (async function openAiApi() {
