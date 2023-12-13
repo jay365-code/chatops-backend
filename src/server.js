@@ -24,7 +24,11 @@ const app = express();
 app.use(bodyParser.json());
 app.use(
   cors({
-    origin: ["http://localhost:8080", "http://172.16.10.168:3001/"], // 허용할 origin (프론트엔드 앱의 주소)
+    origin: [
+      "http://localhost:8080",
+      "http://172.16.10.168:3001/",
+      "http://172.16.10.168:3004/",
+    ], // 허용할 origin (프론트엔드 앱의 주소)
     credentials: true, // credentials 모드 사용
   })
 );
