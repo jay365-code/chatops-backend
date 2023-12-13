@@ -351,8 +351,9 @@ function init(req) {
   req.session.instance.sizeStorage = null;
   req.session.instance.numNode = null;
   // TMP: NEXT#1
-  // req.session.currentState = "start";
-  req.session.currentState = "instance architecture";
+  req.session.currentState = "start";
+  console.log("init() req.session.currentState=" + req.session.currentState);
+  // req.session.currentState = "instance architecture";
 
   req.session.chatHistory = [];
 
@@ -404,6 +405,8 @@ function initInputs(req) {
 }
 
 function setChatHistory(req, question, answer) {
+  console.log("question=" + question);
+  console.log("answer=" + answer);
   // 대화 항목 추가
   req.session.chatHistory.push({ question: question, answer: answer });
 
@@ -414,6 +417,9 @@ function setChatHistory(req, question, answer) {
 }
 
 function getChatHistory(req, count) {
+  console.log(
+    "req.session.chatHistory.length=" + req.session.chatHistory.length
+  );
   if (!req.session.chatHistory || req.session.chatHistory.length === 0) {
     return "대화 기록이 없습니다.";
   }

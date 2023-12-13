@@ -111,9 +111,10 @@ app.post("/chat", async (req, res) => {
 
 app.get("/chat-stream", (req, res) => {
   const openai = new OpenAI();
-  let aiResponse = null;
+  let aiResponse = "";
   let systemContent = null;
   const currentState = req.session.currentState;
+  console.log("req.session.currentState=" + req.session.currentState);
   if (currentState === undefined) {
     chatFlow.init(req);
   }
@@ -179,6 +180,7 @@ app.get("/chat-stream", (req, res) => {
     }
     res.end();
     chatFlow.setChatHistory(req, userContent, aiResponse);
+    // console.log("aiResponse=" + aiResponse);
   })();
 });
 
