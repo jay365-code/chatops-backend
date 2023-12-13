@@ -112,6 +112,7 @@ app.post("/chat", async (req, res) => {
 app.get("/chat-stream", (req, res) => {
   const openai = new OpenAI();
   let aiResponse = null;
+  let systemContent = null;
 
   // const userContent = req.body["in-0"];
   const userContent = req.query["in-0"];
@@ -124,7 +125,7 @@ app.get("/chat-stream", (req, res) => {
     return; // 함수 실행 종료
   }
 
-  const systemContent = `${prompts.SYSTEM_PROMPT_CHAT_INSTANCE_NEW}`;
+  systemContent = `${prompts.SYSTEM_PROMPT_CHAT_INSTANCE_NEW}`;
   const chatHistoryText = chatFlow.getChatHistory(req, 1);
   systemContent += `\nChat History: ${chatHistoryText}`;
   console.log("systemContent=" + systemContent);
