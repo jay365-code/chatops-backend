@@ -115,7 +115,7 @@ app.get("/chat-stream", (req, res) => {
   let systemContent = null;
   const currentState = req.session.currentState;
   if (currentState === undefined) {
-    init(req);
+    chatFlow.init(req);
   }
 
   // const userContent = req.body["in-0"];
