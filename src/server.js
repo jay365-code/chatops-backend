@@ -125,7 +125,7 @@ app.get("/chat-stream", (req, res) => {
   }
 
   const systemContent = `${prompts.SYSTEM_PROMPT_CHAT_INSTANCE_NEW}`;
-  const chatHistoryText = getChatHistory(req, 1);
+  const chatHistoryText = chatFlow.getChatHistory(req, 1);
   systemContent += `\nChat History: ${chatHistoryText}`;
   console.log("systemContent=" + systemContent);
 
@@ -173,7 +173,7 @@ app.get("/chat-stream", (req, res) => {
       }
     }
     res.end();
-    setChatHistory(req, userContent, aiResponse);
+    chatFlow.setChatHistory(req, userContent, aiResponse);
   })();
 });
 

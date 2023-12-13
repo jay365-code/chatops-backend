@@ -494,4 +494,6 @@ function execIntent(req) {
 
 module.exports = {
   chattingFlow: chattingFlow,
+  getChatHistory: getChatHistory,
+  setChatHistory: setChatHistory,
 };
