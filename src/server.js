@@ -113,6 +113,10 @@ app.get("/chat-stream", (req, res) => {
   const openai = new OpenAI();
   let aiResponse = null;
   let systemContent = null;
+  const currentState = req.session.currentState;
+  if (currentState === undefined) {
+    init(req);
+  }
 
   // const userContent = req.body["in-0"];
   const userContent = req.query["in-0"];

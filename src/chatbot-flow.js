@@ -496,4 +496,5 @@ module.exports = {
   chattingFlow: chattingFlow,
   getChatHistory: getChatHistory,
   setChatHistory: setChatHistory,
+  init: init,
 };
