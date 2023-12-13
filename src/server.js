@@ -178,8 +178,8 @@ app.get("/chat-stream", (req, res) => {
         // res.write(content);
       }
     }
-    res.end();
     chatFlow.setChatHistory(req, userContent, aiResponse);
+    res.end();
     // console.log("aiResponse=" + aiResponse);
   })();
 });
