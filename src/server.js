@@ -120,7 +120,7 @@ app.get("/chat-stream", (req, res) => {
   }
 
   // const userContent = req.body["in-0"];
-  const userContent = req.query["in-0"];
+  const userContent = `${req.query["in-0"]}`;
   console.log("in-0: " + userContent);
   // TBD: -add Chat History, Stream 방식의 답변에서 응답 완성 루틴 필요
   //      -CMP 스웨거 or Open API spec 3.0 베이스로 JSON 생성하게 만들자
@@ -171,9 +171,12 @@ app.get("/chat-stream", (req, res) => {
       if (content) {
         // content가 유효한지 확인
         // const formattedData = `data: ${JSON.stringify(content)}\n\n`;
-        const formattedData = `data: ${content}\n\n`;
-        res.write(formattedData);
-        console.log(content);
+        const formattedData = `data: ${content
+          .replace(/ /g, "&nbsp;")
+          .replace(/\n/g, "<br>")}\r\n\r\n`;
+        // const convertedData = formattedData.replace(/\n/g, "\r\n");
+        res.write(formattedData + "\r\n");
+        console.log(formattedData);
         aiResponse += content;
         // res.write(content);
       }
