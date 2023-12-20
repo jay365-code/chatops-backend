@@ -131,7 +131,7 @@ app.get("/chat-stream", (req, res) => {
   }
 
   systemContent = `${prompts.SYSTEM_PROMPT_CHAT_INSTANCE_NEW}`;
-  const chatHistoryText = chatFlow.getChatHistory(req, 1);
+  const chatHistoryText = chatFlow.getChatHistory(req, 5);
   systemContent += `\nChat History: ${chatHistoryText}`;
   console.log("systemContent=" + systemContent);
 
@@ -176,7 +176,7 @@ app.get("/chat-stream", (req, res) => {
           .replace(/\n/g, "<br>")}\r\n\r\n`;
         // const convertedData = formattedData.replace(/\n/g, "\r\n");
         res.write(formattedData + "\r\n");
-        console.log(formattedData);
+        // console.log(formattedData);
         aiResponse += content;
         // res.write(content);
       }
